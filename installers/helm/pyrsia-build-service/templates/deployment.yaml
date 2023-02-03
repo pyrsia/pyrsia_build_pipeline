@@ -1,72 +1,25 @@
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
-  name: {{ include "pyrsia-build-service.name" . }}
+  name:  {{ include "pyrsia-build-service.name" . }}
 spec:
   replicas: {{ .Values.replicaCount }}
-  updateStrategy:
-    type: RollingUpdate
-  serviceName: {{ include "pyrsia-build-service.name" . }}
   selector:
     matchLabels:
       app:  {{ include "pyrsia-build-service.name" . }}
-      tier: frontend
+      tier: backend
       track: stable
   template:
     metadata:
       labels:
-        app: {{ include "pyrsia-build-service.name" . }}
-        tier: frontend
+        app:  {{ include "pyrsia-build-service.name" . }}
+        tier: backend
         track: stable
     spec:
-      serviceAccount: {{ printf "%s-service-reader" (include "pyrsia-build-service.name" .) }}
       containers:
         - name: {{ include "pyrsia-build-service.name" . }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.DockerRepo }}:{{ .Values.DockerTag }}"
+          imagePullPolicy: Always
           ports:
-            - name: pyrsia
-              containerPort: 80
-            - name: p2p
-              containerPort: 44000
-          env:
-            - name: RUST_LOG
-              value: DEBUG
-            - name: PYRSIA_ARTIFACT_PATH
-              value: /usr/local/var/pyrsia
-            - name: PYRSIA_BLOCKCHAIN_PATH
-              value: /usr/local/var/pyrsia/blockchain
-            - name: PYRSIA_KEYPAIR
-              value: /usr/local/var/pyrsia-keys/ed25519.ser
-            - name: PYRSIA_BOOTDNS
-              value: {{ printf "%s" ( .Values.bootdns | default "boot.pyrsia.link" ) }}
-            {{- if .Values.buildnode }}
-            - name: PYRSIA_BUILDNODE
-              value: {{ .Values.buildnode }}
-            {{- end }}
-          livenessProbe:
-            httpGet:
-              path: /status
-              port: 7888
-            initialDelaySeconds: 360
-            periodSeconds: 60
-          volumeMounts:
-            # name must match the volume name below
-            - name: pyrsia-storage
-              mountPath: "/usr/local/var/pyrsia"
-            - name: pyrsia-keys
-              mountPath: /usr/local/var/pyrsia-keys
-      volumes:
-        - name: pyrsia-keys
-          secret:
-            secretName: pyrsia-keys
-  volumeClaimTemplates:
-  - metadata:
-      name: pyrsia-storage
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: pyrsia-sc
-      resources:
-        requests:
-          storage: 1500Gi
+            - containerPort: 8080

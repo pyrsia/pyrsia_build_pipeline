@@ -1,70 +1,13 @@
----
-kind: Service
 apiVersion: v1
-metadata:
-  name: {{ printf "%s-0" (include "pyrsia-build-service.name" .) }}
-  annotations:
-    external-dns.alpha.kubernetes.io/hostname: {{ printf "%s-0.%s" (include "pyrsia-build-service.name" .) (.Values.dnsname | default "pyrsia.link")  }}
-    external-dns.alpha.kubernetes.io/ttl: "60"
-spec:
-  type: LoadBalancer
-  externalTrafficPolicy: Local
-  selector:
-    statefulset.kubernetes.io/pod-name: {{ printf "%s-0" (include "pyrsia-build-service.name" .) }}
-  ports:
-    - port: 80
-      targetPort: 7888
-      protocol: TCP
-      name: pyrsia
-    - port: 44000
-      targetPort: 44000
-      protocol: TCP
-      name: p2p
----
-{{ if ge (int .Values.replicaCount) 2 }}
 kind: Service
-apiVersion: v1
 metadata:
-  name: {{ printf "%s-1" (include "pyrsia-build-service.name" .) }}
-  annotations:
-    external-dns.alpha.kubernetes.io/hostname: {{ printf "%s-1.%s" (include "pyrsia-build-service.name" .) (.Values.dnsname | default "pyrsia.link")  }}
-    external-dns.alpha.kubernetes.io/ttl: "60"
+  name: {{ include "pyrsia-build-service.name" . }}
 spec:
-  type: LoadBalancer
-  externalTrafficPolicy: Local
   selector:
-    statefulset.kubernetes.io/pod-name: {{ printf "%s-1" (include "pyrsia-build-service.name" .) }}
+    app: {{ include "pyrsia-build-service.name" . }}
+    tier: backend
   ports:
-    - port: 80
-      targetPort: 7888
+    - name: build-service
       protocol: TCP
-      name: pyrsia
-    - port: 44000
-      targetPort: 44000
-      protocol: TCP
-      name: p2p
-{{ end }}
----
-{{ if ge (int .Values.replicaCount) 3 }}
-kind: Service
-apiVersion: v1
-metadata:
-  name: {{ printf "%s-2" (include "pyrsia-build-service.name" .) }}
-  annotations:
-    external-dns.alpha.kubernetes.io/hostname: {{ printf "%s-2.%s" (include "pyrsia-build-service.name" .) (.Values.dnsname | default "pyrsia.link") }}
-    external-dns.alpha.kubernetes.io/ttl: "60"
-spec:
-  type: LoadBalancer
-  selector:
-    statefulset.kubernetes.io/pod-name: {{ printf "%s-2" (include "pyrsia-build-service.name" .) }}
-  ports:
-    - port: 80
-      targetPort: 7888
-      protocol: TCP
-      name: pyrsia
-    - port: 44000
-      targetPort: 44000
-      protocol: TCP
-      name: p2p
-{{ end }}
----
+      port: 80
+      targetPort: 8080
