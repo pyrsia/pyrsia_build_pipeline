@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 set -e
+set -x
+env
 
 RELTYPE=$1
 
@@ -13,7 +15,7 @@ cd installers/helm
 mkdir -p repos/$RELTYPE
 gsutil -m rsync -r gs://helmrepo/repos repos
 helm package pyrsia-build-service
-mv pyrsia-node*.tgz repos/$RELTYPE
+mv pyrsia-build-service*.tgz repos/$RELTYPE
 cd repos/$RELTYPE
 helm repo index --url https://helmrepo.pyrsia.io/repos/$RELTYPE .
 cd ../..
