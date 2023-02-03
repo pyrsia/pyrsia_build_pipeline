@@ -81,7 +81,6 @@ jobs:
         with:
           workload_identity_provider: 'projects/679352079717/locations/global/workloadIdentityPools/pyrsia-pool/providers/github-provider'
           service_account: 'pyrsia-ghaction@pyrsia-sandbox.iam.gserviceaccount.com'
-          create_credentials_file: true
 
       # Add gsutils
       - name: Set up Cloud SDK
