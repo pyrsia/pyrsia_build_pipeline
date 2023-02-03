@@ -23,3 +23,6 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
+          env:
+            - name: PYRSIA_BOOTDNS
+              value: {{ printf "%s" ( .Values.bootdns | default "boot.pyrsia.link" ) }}
