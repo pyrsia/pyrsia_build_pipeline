@@ -79,7 +79,7 @@ jobs:
         if: github.repository_owner == 'pyrsia' && (github.event_name == 'push' || github.event_name == 'release')
         uses: 'google-github-actions/auth@v1'
         with:
-          workload_identity_provider: 'projects/679352079717/locations/global/workloadIdentityPools/pyrsia-pool/providers/github-provider'
+          workload_identity_provider: 'projects/679352079717/locations/global/workloadIdentityPools/pyrsia-pool/*'
           service_account: 'pyrsia-ghaction@pyrsia-sandbox.iam.gserviceaccount.com'
 
       # Add gsutils
