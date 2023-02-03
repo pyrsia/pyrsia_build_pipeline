@@ -1,0 +1,14 @@
+---
+
+replicaCount: 1
+
+image:
+  repository: pyrsiaoss/pyrsia-build-service
+  tag: 0.1.0-2305
+  pullPolicy: Always
+
+keys:
+  p2p: ""
+  blockchain: ""
+
+k8s_provider: gke # "gke, oke, aks, eks"

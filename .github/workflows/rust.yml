@@ -1,0 +1,100 @@
+---
+name: Rust
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  release:
+    types: [published]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-push-linux:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-20.04
+    env:
+      RUSTC_WRAPPER: /home/runner/.cargo/bin/sccache
+      CARGO_INCREMENTAL: 0
+    steps:
+      - uses: actions/checkout@v3
+
+      # Use sscache store in GitHub cache
+      - uses: actions/cache@v3
+        with:
+          path: /home/runner/.cache/sccache
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      # Install and start sccache from binary
+      - name: Start sccache
+        run: |
+          .github/workflows/sccache-linux.sh
+          sccache --start-server
+          sccache --show-stats
+
+      - uses: pyrsia/rust-toolchain@v2
+        with:
+          packages: set-cargo-version
+
+      # Need to add build number to version number
+      - name: Add Build to Version Number
+        run: |
+          set-cargo-version Cargo.toml ${{ env.PKG_VERSION }}+${{ github.run_number }}
+
+      # Run cargo build in parallel using sscache to avoid OS locking errors
+      - name: Build Release and Test Binaries
+        run: |
+          cargo build --workspace --release
+          sccache --show-stats
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Build and Push Docker Image for Pyrsia Node
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          file: installers/docker/BuildService.Dockerfile
+          tags: pyrsiaoss/pyrsia-build-service:${{ env.PKG_VERSION }}-${{ github.run_number }}
+
+      # Update the helm chart values with the image tag
+      - name: Add Build to Version Number in Chart and Values files
+        if: github.repository_owner == 'pyrsia' && (github.event_name == 'push' || github.event_name == 'release')
+        run: |
+          sudo go install github.com/mikefarah/yq/v4@latest
+          yq e '.image.tag |= "${{ env.PKG_VERSION }}-${{ github.run_number }}"' -i installers/helm/pyrsia-build-service/values.yaml
+          yq e '.version |= "${{ env.PKG_VERSION }}+${{ github.run_number }}"' -i installers/helm/pyrsia-build-service/Chart.yaml
+          yq e '.appVersion |= "${{ env.PKG_VERSION }}+${{ github.run_number }}"' -i installers/helm/pyrsia-build-service/Chart.yaml
+
+      # Login to GCS
+      - name: Google Auth
+        if: github.repository_owner == 'pyrsia' && (github.event_name == 'push' || github.event_name == 'release')
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/679352079717/locations/global/workloadIdentityPools/pyrsia-pool/providers/github-provider'
+          service_account: 'pyrsia-ghaction@pyrsia-sandbox.iam.gserviceaccount.com'
+
+      # Add gsutils
+      - name: Set up Cloud SDK
+        if: github.repository_owner == 'pyrsia' && (github.event_name == 'push' || github.event_name == 'release')
+        uses: 'google-github-actions/setup-gcloud@v1'
+
+      # Add the updated helm chart to the helm NIGHTLY repo
+      - name: Add the updated helm chart to the helm NIGHTLY repo
+        if: github.repository_owner == 'pyrsia' && (github.event_name == 'push' || github.event_name == 'release')
+        run: |
+          .github/workflows/chartmuseum.sh nightly
+
+      # Add the updated helm chart to the helm STABLE repo
+      - name: Add the updated helm chart to the helm STABLE repo
+        if: github.repository_owner == 'pyrsia' && github.event_name == 'release'
+        run: |
+          .github/workflows/chartmuseum.sh stable

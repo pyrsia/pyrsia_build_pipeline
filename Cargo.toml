@@ -1,10 +1,12 @@
 [package]
 name = "pyrsia_build"
 version = "0.1.0"
-description = "Pyrsia Build Pipeline"
+description = "Pyrsia Build Service"
 authors = ["pyrsiaoss <pyrsiaopensource@gmail.com>"]
 edition = "2021"
 license = "Apache-2"
+repository = "https://github.com/pyrsia/pyrsia_build_service"
+rust-version = "1.66.1"
 
 [dependencies]
 actix-web = "4.1.0"
